@@ -1,0 +1,534 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model State {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  isDefault   Boolean      @default(false) @map("is_default")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdBy   String?      @map("created_by")
+  updatedBy   String?      @map("updated_by")
+  deletedAt   DateTime?    @map("deleted_at")
+  brands      Brand[]
+  cities      City[]
+  members     Member[]
+  tournaments Tournament[]
+  users       User[]
+
+  @@map("states")
+}
+
+model City {
+  id          String       @id @default(cuid())
+  stateId     String       @map("state_id")
+  name        String
+  pincode     String?
+  isActive    Boolean      @default(true) @map("is_active")
+  isDefault   Boolean      @default(false) @map("is_default")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdBy   String?      @map("created_by")
+  updatedBy   String?      @map("updated_by")
+  deletedAt   DateTime?    @map("deleted_at")
+  brands      Brand[]
+  state       State        @relation(fields: [stateId], references: [id])
+  members     Member[]
+  tournaments Tournament[]
+  users       User[]
+
+  @@unique([stateId, name])
+  @@map("cities")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  code            String           @unique
+  description     String?
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  isSystem        Boolean          @default(false) @map("is_system")
+  rolePermissions RolePermission[]
+  users           User[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id             String        @id @default(cuid())
+  firstName      String        @map("first_name")
+  lastName       String        @map("last_name")
+  email          String        @unique
+  mobile         String        @unique
+  passwordHash   String        @map("password_hash")
+  roleId         String        @map("role_id")
+  stateId        String?       @map("state_id")
+  cityId         String?       @map("city_id")
+  isTwofaEnabled Boolean       @default(false) @map("is_twofa_enabled")
+  status         UserStatus    @default(ACTIVE)
+  lastLoginAt    DateTime?     @map("last_login_at")
+  isDefault      Boolean       @default(false) @map("is_default")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  createdBy      String?       @map("created_by")
+  updatedBy      String?       @map("updated_by")
+  deletedAt      DateTime?     @map("deleted_at")
+  sessions       UserSession[]
+  city           City?         @relation(fields: [cityId], references: [id])
+  role           Role          @relation(fields: [roleId], references: [id])
+  state          State?        @relation(fields: [stateId], references: [id])
+
+  @@map("users")
+}
+
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  ip         String?
+  userAgent  String?   @map("user_agent")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  revokedAt  DateTime? @map("revoked_at")
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@map("user_sessions")
+}
+
+model PasswordReset {
+  email     String
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  @@id([email, tokenHash])
+  @@map("password_resets")
+}
+
+model Brand {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  description      String?
+  stateId          String            @map("state_id")
+  cityId           String            @map("city_id")
+  logoUrl          String?           @map("logo_url")
+  primaryColor     String?           @map("primary_color")
+  secondaryColor   String?           @map("secondary_color")
+  contactName      String?           @map("contact_name")
+  contactEmail     String?           @map("contact_email")
+  contactPhone     String?           @map("contact_phone")
+  isActive         Boolean           @default(true) @map("is_active")
+  isDefault        Boolean           @default(false) @map("is_default")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  createdBy        String?           @map("created_by")
+  updatedBy        String?           @map("updated_by")
+  deletedAt        DateTime?         @map("deleted_at")
+  website          String?           @db.VarChar(1024)
+  bannerUrl        String?           @map("banner_url") @db.VarChar(500)
+  tshirtUrl        String?           @map("tshirt_url") @db.VarChar(500)
+  city             City              @relation(fields: [cityId], references: [id])
+  state            State             @relation(fields: [stateId], references: [id])
+  members          Member[]
+  teams            Team[]
+  tournamentBrands TournamentBrand[]
+
+  @@map("brands")
+}
+
+model Member {
+  id                String       @id @default(cuid())
+  firstName         String       @map("first_name")
+  lastName          String       @map("last_name")
+  gender            Gender
+  dob               DateTime?
+  mobile            String       @unique
+  email             String?      @unique
+  address           String?
+  stateId           String       @map("state_id")
+  cityId            String       @map("city_id")
+  education         String?
+  experienceYears   Int?         @map("experience_years")
+  notes             String?
+  photoUrl          String?      @map("photo_url")
+  brandId           String?      @map("brand_id")
+  isDefault         Boolean      @default(false) @map("is_default")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  createdBy         String?      @map("created_by")
+  updatedBy         String?      @map("updated_by")
+  deletedAt         DateTime?    @map("deleted_at")
+  company_website   String?      @db.VarChar(2048)
+  company_instagram String?      @db.VarChar(2048)
+  company_youtube   String?      @db.VarChar(2048)
+  company_facebook  String?      @db.VarChar(2048)
+  company_linkedin  String?      @db.VarChar(2048)
+  company_name      String?      @db.VarChar(1024)
+  brand             Brand?       @relation(fields: [brandId], references: [id])
+  city              City         @relation(fields: [cityId], references: [id])
+  state             State        @relation(fields: [stateId], references: [id])
+  playerGames       PlayerGame[]
+  teamMembers       TeamMember[]
+
+  @@map("members")
+}
+
+model Tournament {
+  id                   String               @id @default(cuid())
+  name                 String               @unique @db.VarChar(180)
+  description          String?
+  stateId              String               @map("state_id")
+  cityId               String               @map("city_id")
+  startDate            DateTime             @map("start_date")
+  endDate              DateTime             @map("end_date")
+  visibility           TournamentVisibility @default(PUBLIC)
+  status               TournamentStatus     @default(DRAFT)
+  noOfRounds           Int                  @map("no_of_rounds")
+  brandsCount          Int                  @map("brands_count")
+  teamsPerBrand        Int                  @map("teams_per_brand")
+  playersPerTeam       Int                  @map("players_per_team")
+  malePerTeam          Int                  @map("male_per_team")
+  femalePerTeam        Int                  @map("female_per_team")
+  lanesTotal           Int                  @map("lanes_total")
+  framesPerGame        Int                  @default(10) @map("frames_per_game")
+  handicapBaseScore    Int?                 @map("handicap_base_score")
+  handicapPercent      Int?                 @map("handicap_percent")
+  femaleAdjustmentPins Int?                 @map("female_adjustment_pins")
+  allowManualOverride  Boolean              @default(true) @map("allow_manual_override")
+  requireDualApproval  Boolean              @default(false) @map("require_dual_approval")
+  laneRotationEnabled  Boolean              @default(false) @map("lane_rotation_enabled")
+  youtubeLiveUrl       String?              @map("youtube_live_url")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  createdBy            String?              @map("created_by")
+  updatedBy            String?              @map("updated_by")
+  deletedAt            DateTime?            @map("deleted_at")
+  playerGames          PlayerGame[]
+  teams                Team[]
+  tournamentBrands     TournamentBrand[]
+  rounds               TournamentRound[]
+  tournamentSlots      TournamentSlot[]
+  city                 City                 @relation(fields: [cityId], references: [id])
+  state                State                @relation(fields: [stateId], references: [id])
+
+  @@map("tournaments")
+}
+
+model TournamentRound {
+  id                String            @id @default(cuid())
+  tournamentId      String            @map("tournament_id")
+  roundNo           Int               @map("round_no")
+  name              String
+  isKnockout        Boolean           @default(true) @map("is_knockout")
+  teamsIn           Int?              @map("teams_in")
+  teamsOut          Int?              @map("teams_out")
+  teamsAdvancing    Int?              @map("teams_advancing")
+  matchesCount      Int?              @map("matches_count")
+  aggregationScope  AggregationScope  @default(ROUND) @map("aggregation_scope")
+  aggregationMetric AggregationMetric @default(TEAM_TOTAL) @map("aggregation_metric")
+  tieBreakersJson   Json?             @map("tie_breakers_json")
+  configJson        Json?             @map("config_json")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  createdBy         String?           @map("created_by")
+  updatedBy         String?           @map("updated_by")
+  deletedAt         DateTime?         @map("deleted_at")
+  playerGames       PlayerGame[]
+  tournamentMatches TournamentMatch[]
+  tournament        Tournament        @relation(fields: [tournamentId], references: [id])
+  tournamentSlots   TournamentSlot[]
+
+  @@unique([tournamentId, roundNo])
+  @@map("tournament_rounds")
+}
+
+model TournamentMatch {
+  id                String          @id @default(cuid())
+  tournamentRoundId String          @map("tournament_round_id")
+  matchNo           Int             @map("match_no")
+  name              String
+  scheduledAt       DateTime?       @map("scheduled_at")
+  configJson        Json?           @map("config_json")
+  positionNo        Int?            @map("position_no")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  createdBy         String?         @map("created_by")
+  updatedBy         String?         @map("updated_by")
+  deletedAt         DateTime?       @map("deleted_at")
+  playerGames       PlayerGame[]
+  teamGameTotals    TeamGameTotal[]
+  tournamentRound   TournamentRound @relation(fields: [tournamentRoundId], references: [id])
+
+  @@unique([tournamentRoundId, matchNo])
+  @@map("tournament_matches")
+}
+
+model Lane {
+  id          String       @id @default(cuid())
+  venueName   String?      @map("venue_name")
+  laneNo      Int          @unique @map("lane_no")
+  isActive    Boolean      @default(true) @map("is_active")
+  notes       String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdBy   String?      @map("created_by")
+  updatedBy   String?      @map("updated_by")
+  deletedAt   DateTime?    @map("deleted_at")
+  playerGames PlayerGame[]
+  slotTeams   SlotTeam[]
+
+  @@map("lanes")
+}
+
+model TournamentSlot {
+  id                String          @id @default(cuid())
+  tournamentId      String          @map("tournament_id")
+  tournamentRoundId String          @map("tournament_round_id")
+  slotNo            Int             @map("slot_no")
+  name              String
+  scheduledAt       DateTime?       @map("scheduled_at")
+  status            SlotStatus      @default(PENDING)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  createdBy         String?         @map("created_by")
+  updatedBy         String?         @map("updated_by")
+  deletedAt         DateTime?       @map("deleted_at")
+  slotTeams         SlotTeam[]
+  tournament        Tournament      @relation(fields: [tournamentId], references: [id])
+  tournamentRound   TournamentRound @relation(fields: [tournamentRoundId], references: [id])
+
+  @@unique([tournamentId, slotNo])
+  @@map("tournament_slots")
+}
+
+model SlotTeam {
+  id               String         @id @default(cuid())
+  tournamentSlotId String         @map("tournament_slot_id")
+  teamId           String         @map("team_id")
+  laneId           String?        @map("lane_id")
+  positionNo       Int            @map("position_no")
+  seed             Int?
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  createdBy        String?        @map("created_by")
+  updatedBy        String?        @map("updated_by")
+  deletedAt        DateTime?      @map("deleted_at")
+  lane             Lane?          @relation(fields: [laneId], references: [id])
+  team             Team           @relation(fields: [teamId], references: [id])
+  tournamentSlot   TournamentSlot @relation(fields: [tournamentSlotId], references: [id])
+
+  @@map("slot_teams")
+}
+
+model TournamentBrand {
+  id            String     @id @default(cuid())
+  tournamentId  String     @map("tournament_id")
+  brandId       String     @map("brand_id")
+  numberOfTeams Int        @map("number_of_teams")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  createdBy     String?    @map("created_by")
+  updatedBy     String?    @map("updated_by")
+  deletedAt     DateTime?  @map("deleted_at")
+  brand         Brand      @relation(fields: [brandId], references: [id])
+  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@map("tournament_brands")
+}
+
+model Team {
+  id             String          @id @default(cuid())
+  tournamentId   String          @map("tournament_id")
+  brandId        String          @map("brand_id")
+  name           String
+  baseName       String          @map("base_name")
+  suffix         String?
+  logoUrl        String?         @map("logo_url")
+  color          String?
+  seedNo         Int?            @map("seed_no")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  createdBy      String?         @map("created_by")
+  updatedBy      String?         @map("updated_by")
+  deletedAt      DateTime?       @map("deleted_at")
+  playerGames    PlayerGame[]
+  slotTeams      SlotTeam[]
+  teamGameTotals TeamGameTotal[]
+  teamMembers    TeamMember[]
+  brand          Brand           @relation(fields: [brandId], references: [id])
+  tournament     Tournament      @relation(fields: [tournamentId], references: [id])
+
+  @@unique([tournamentId, name])
+  @@map("teams")
+}
+
+model TeamMember {
+  id                    String       @id @default(cuid())
+  teamId                String       @map("team_id")
+  memberId              String       @map("member_id")
+  roleInTeam            TeamRole     @default(PLAYER) @map("role_in_team")
+  isReplacement         Boolean      @default(false) @map("is_replacement")
+  replacementOfMemberId String?      @map("replacement_of_member_id")
+  jerseyNo              Int?         @map("jersey_no")
+  positionNo            Int?         @map("position_no")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+  createdBy             String?      @map("created_by")
+  updatedBy             String?      @map("updated_by")
+  deletedAt             DateTime?    @map("deleted_at")
+  member                Member       @relation(fields: [memberId], references: [id])
+  replacementOfMember   TeamMember?  @relation("ReplacementOf", fields: [replacementOfMemberId], references: [id])
+  replacements          TeamMember[] @relation("ReplacementOf")
+  team                  Team         @relation(fields: [teamId], references: [id])
+
+  @@unique([teamId, memberId])
+  @@map("team_members")
+}
+
+model PlayerGame {
+  id                      String          @id @default(cuid())
+  tournamentId            String          @map("tournament_id")
+  tournamentRoundId       String          @map("tournament_round_id")
+  tournamentMatchId       String          @map("tournament_match_id")
+  teamId                  String          @map("team_id")
+  memberId                String          @map("member_id")
+  laneId                  String?         @map("lane_id")
+  gameNo                  Int             @map("game_no")
+  rawScore                Int             @map("raw_score")
+  handicapApplied         Int             @default(0) @map("handicap_applied")
+  femaleAdjustmentApplied Int             @default(0) @map("female_adjustment_applied")
+  overrideScore           Int?            @map("override_score")
+  finalScore              Int             @map("final_score")
+  isConfirmed             Boolean         @default(false) @map("is_confirmed")
+  approvedByUserId        String?         @map("approved_by_user_id")
+  approvedAt              DateTime?       @map("approved_at")
+  notes                   String?
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+  createdBy               String?         @map("created_by")
+  updatedBy               String?         @map("updated_by")
+  deletedAt               DateTime?       @map("deleted_at")
+  playerFrames            PlayerFrame[]
+  lane                    Lane?           @relation(fields: [laneId], references: [id])
+  member                  Member          @relation(fields: [memberId], references: [id])
+  team                    Team            @relation(fields: [teamId], references: [id])
+  tournament              Tournament      @relation(fields: [tournamentId], references: [id])
+  tournamentMatch         TournamentMatch @relation(fields: [tournamentMatchId], references: [id])
+  tournamentRound         TournamentRound @relation(fields: [tournamentRoundId], references: [id])
+
+  @@unique([tournamentMatchId, gameNo, memberId])
+  @@map("player_games")
+}
+
+model PlayerFrame {
+  id              String     @id @default(cuid())
+  playerGameId    String     @map("player_game_id")
+  frameNo         Int        @map("frame_no") @db.SmallInt
+  roll1Pins       Int        @map("roll1_pins") @db.SmallInt
+  roll2Pins       Int?       @map("roll2_pins") @db.SmallInt
+  roll3Pins       Int?       @map("roll3_pins") @db.SmallInt
+  roll1Foul       Boolean    @default(false) @map("roll1_foul")
+  roll2Foul       Boolean    @default(false) @map("roll2_foul")
+  roll3Foul       Boolean    @default(false) @map("roll3_foul")
+  isSplit         Boolean    @default(false) @map("is_split")
+  isStrike        Boolean?   @map("is_strike")
+  isSpare         Boolean?   @map("is_spare")
+  cumulativeScore Int        @map("cumulative_score")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  createdBy       String?    @map("created_by")
+  updatedBy       String?    @map("updated_by")
+  deletedAt       DateTime?  @map("deleted_at")
+  playerGame      PlayerGame @relation(fields: [playerGameId], references: [id])
+
+  @@unique([playerGameId, frameNo])
+  @@map("player_frames")
+}
+
+model TeamGameTotal {
+  id                String          @id @default(cuid())
+  tournamentMatchId String          @map("tournament_match_id")
+  teamId            String          @map("team_id")
+  gameNo            Int             @map("game_no")
+  rawTotal          Int             @map("raw_total")
+  adjustmentsTotal  Int             @map("adjustments_total")
+  finalTotal        Int             @map("final_total")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  deletedAt         DateTime?       @map("deleted_at")
+  team              Team            @relation(fields: [teamId], references: [id])
+  tournamentMatch   TournamentMatch @relation(fields: [tournamentMatchId], references: [id])
+
+  @@unique([tournamentMatchId, teamId, gameNo])
+  @@map("team_game_totals")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  INVITE_PENDING
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum TournamentVisibility {
+  PUBLIC
+  PRIVATE
+  INTERNAL
+}
+
+enum TournamentStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AggregationScope {
+  ROUND
+  MATCH
+}
+
+enum AggregationMetric {
+  TEAM_TOTAL
+  AVG_OF_GAMES
+  BEST_GAME
+}
+
+enum SlotStatus {
+  PENDING
+  LIVE
+  COMPLETED
+}
+
+enum TeamRole {
+  PLAYER
+  CAPTAIN
+  COACH
+}
