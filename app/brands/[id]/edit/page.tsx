@@ -39,7 +39,11 @@ interface Brand {
   isActive: boolean
   stateId: string
   cityId: string
+  bannerUrl?: string | null
+  tshirtUrl?: string | null
 }
+
+type ImageField = "logoUrl" | "bannerUrl" | "tshirtUrl"
 
 export default function EditBrandPage() {
   const params = useParams()
@@ -62,6 +66,19 @@ export default function EditBrandPage() {
     isActive: true,
     stateId: "",
     cityId: "",
+    bannerUrl: "",
+    tshirtUrl: "",
+  })
+
+  const [uploading, setUploading] = useState<Record<ImageField, boolean>>({
+    logoUrl: false,
+    bannerUrl: false,
+    tshirtUrl: false,
+  })
+  const [previews, setPreviews] = useState<Record<ImageField, string>>({
+    logoUrl: "",
+    bannerUrl: "",
+    tshirtUrl: "",
   })
 
   useEffect(() => {
@@ -96,6 +113,8 @@ export default function EditBrandPage() {
           isActive: data.isActive,
           stateId: data.stateId || "",
           cityId: data.cityId || "",
+          bannerUrl: data.bannerUrl || "",
+          tshirtUrl: data.tshirtUrl || "",
         })
       } else {
         router.push("/brands")
@@ -128,6 +147,35 @@ export default function EditBrandPage() {
     }
   }
 
+  const uploadImage = async (file: File) => {
+    const fd = new FormData()
+    fd.append("file", file)
+    const res = await fetch("/api/uploads", { method: "POST", body: fd })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || "Upload failed")
+    }
+    const data = await res.json()
+    return data.url as string
+  }
+
+  const handleImagePick = async (field: ImageField, file?: File | null) => {
+    if (!file) return
+    if (!file.type.startsWith("image/")) return
+    if (file.size > 5 * 1024 * 1024) return
+
+    const objectUrl = URL.createObjectURL(file)
+    setPreviews((p) => ({ ...p, [field]: objectUrl }))
+    setUploading((u) => ({ ...u, [field]: true }))
+    try {
+      const url = await uploadImage(file)
+      setFormData((prev) => ({ ...prev, [field]: url }))
+    } finally {
+      setUploading((u) => ({ ...u, [field]: false }))
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 15_000)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -148,6 +196,8 @@ export default function EditBrandPage() {
           contactEmail: formData.contactEmail || null,
           contactPhone: formData.contactPhone || null,
           website: formData.website || null,
+          bannerUrl: formData.bannerUrl || null,
+          tshirtUrl: formData.tshirtUrl || null,
         }),
       })
 
@@ -231,13 +281,26 @@ export default function EditBrandPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="logoUrl">Logo URL</Label>
-                  <Input
-                    id="logoUrl"
-                    value={formData.logoUrl}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
-                    placeholder="https://example.com/logo.png"
-                  />
+                  <Label>Logo Image</Label>
+                  <div className="flex items-center gap-4">
+                    {previews.logoUrl || formData.logoUrl ? (
+                      <img
+                        src={previews.logoUrl || formData.logoUrl}
+                        alt="Brand logo preview"
+                        className="h-12 w-12 rounded border object-cover"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        No image
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImagePick("logoUrl", e.target.files?.[0])}
+                    />
+                  </div>
+                  {uploading.logoUrl && <p className="text-xs text-gray-500">Uploading logo...</p>}
                 </div>
               </div>
               <div className="space-y-2">
@@ -258,6 +321,61 @@ export default function EditBrandPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, website: e.target.value }))}
                   placeholder="https://example.com"
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Brand Media</CardTitle>
+              <CardDescription>Update banner and T-shirt images</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Banner Image</Label>
+                  <div className="flex items-center gap-4">
+                    {previews.bannerUrl || formData.bannerUrl ? (
+                      <img
+                        src={previews.bannerUrl || formData.bannerUrl}
+                        alt="Banner preview"
+                        className="h-16 w-28 rounded border object-cover"
+                      />
+                    ) : (
+                      <div className="h-16 w-28 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        No image
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImagePick("bannerUrl", e.target.files?.[0])}
+                    />
+                  </div>
+                  {uploading.bannerUrl && <p className="text-xs text-gray-500">Uploading banner...</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>T-shirt Image</Label>
+                  <div className="flex items-center gap-4">
+                    {previews.tshirtUrl || formData.tshirtUrl ? (
+                      <img
+                        src={previews.tshirtUrl || formData.tshirtUrl}
+                        alt="T-shirt preview"
+                        className="h-16 w-16 rounded border object-cover"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        No image
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImagePick("tshirtUrl", e.target.files?.[0])}
+                    />
+                  </div>
+                  {uploading.tshirtUrl && <p className="text-xs text-gray-500">Uploading t-shirt...</p>}
+                </div>
               </div>
             </CardContent>
           </Card>

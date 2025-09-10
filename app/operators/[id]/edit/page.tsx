@@ -230,7 +230,7 @@ export default function EditOperatorPage({ params }: { params: { id: string } })
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="DISABLED">Disabled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

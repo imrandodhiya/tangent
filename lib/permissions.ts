@@ -2,6 +2,7 @@
 export const PERMISSIONS = {
   // User Management
   USERS_VIEW: "users.view",
+  USERS_EDIT: "users.edit",
   USERS_CREATE: "users.create",
   USERS_UPDATE: "users.update",
   USERS_DELETE: "users.delete",

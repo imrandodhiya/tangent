@@ -68,3 +68,41 @@ export const POST = withPermission(PERMISSIONS.SYSTEM_ADMIN)(async (req) => {
     return NextResponse.json({ error: "Failed to create setting" }, { status: 500 })
   }
 })
+
+export const PUT = withPermission(PERMISSIONS.SYSTEM_ADMIN)(async (req) => {
+  try {
+    const body = await req.json()
+
+    const upsertOne = async (s: any) => {
+      if (!s?.key) throw new Error("Key is required")
+      const payload = {
+        key: s.key,
+        value: typeof s.value === "string" ? s.value : JSON.stringify(s.value ?? ""),
+        category: s.category || "system",
+        description: s.description || null,
+        type: s.type || "string",
+      }
+      return prisma.setting.upsert({
+        where: { key: payload.key },
+        update: {
+          value: payload.value,
+          category: payload.category,
+          description: payload.description,
+          type: payload.type,
+        },
+        create: payload,
+      })
+    }
+
+    if (Array.isArray(body)) {
+      const result = await prisma.$transaction(body.map((s) => upsertOne(s)))
+      return NextResponse.json({ updated: result.length })
+    } else {
+      const result = await upsertOne(body)
+      return NextResponse.json(result)
+    }
+  } catch (error) {
+    console.error("Error upserting settings:", error)
+    return NextResponse.json({ error: "Failed to upsert settings" }, { status: 500 })
+  }
+})

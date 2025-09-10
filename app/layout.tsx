@@ -20,12 +20,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="font-sans antialiased">
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full`}>
+      <body className="h-full overflow-hidden font-sans antialiased">
         <AuthSessionProvider>
-          <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="flex h-full bg-gray-50 dark:bg-gray-900">
             <Navigation />
-            <main className="flex-1 overflow-auto">
+            {/* main scrolls; page itself doesn't create a second browser scrollbar */}
+            <main className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable both-edges" }}>
               <div className="min-h-full">{children}</div>
             </main>
           </div>

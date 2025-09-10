@@ -234,15 +234,30 @@ export default function CreateBrandPage() {
                   />
                   {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
                 </div>
+
+                {/* Logo upload (replaces URL input) */}
                 <div className="space-y-2">
-                  <Label htmlFor="logoUrl">Logo URL</Label>
-                  <Input
-                    id="logoUrl"
-                    type="url"
-                    value={formData.logoUrl}
-                    onChange={(e) => handleInputChange("logoUrl", e.target.value)}
-                    placeholder="https://example.com/logo.png"
-                  />
+                  <Label>Logo Image</Label>
+                  <div className="flex items-center gap-4">
+                    {previews.logoUrl || formData.logoUrl ? (
+                      <img
+                        src={previews.logoUrl || formData.logoUrl}
+                        alt="Brand logo preview"
+                        className="h-12 w-12 rounded border object-cover"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        No image
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImagePick("logoUrl", e.target.files?.[0])}
+                    />
+                  </div>
+                  {uploading.logoUrl && <p className="text-xs text-gray-500">Uploading logo...</p>}
+                  {errors.logoUrl && <p className="text-sm text-red-600">{errors.logoUrl}</p>}
                 </div>
               </div>
 
@@ -257,6 +272,7 @@ export default function CreateBrandPage() {
                 />
               </div>
 
+              {/* Location */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="state">State *</Label>
@@ -289,6 +305,67 @@ export default function CreateBrandPage() {
                     </SelectContent>
                   </Select>
                   {errors.cityId && <p className="text-sm text-red-600">{errors.cityId}</p>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Brand Media */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Brand Media</CardTitle>
+              <CardDescription>Upload banner and T-shirt images</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Banner image */}
+                <div className="space-y-2">
+                  <Label>Banner Image</Label>
+                  <div className="flex items-center gap-4">
+                    {previews.bannerUrl || formData.bannerUrl ? (
+                      <img
+                        src={previews.bannerUrl || formData.bannerUrl}
+                        alt="Brand banner preview"
+                        className="h-16 w-28 rounded border object-cover"
+                      />
+                    ) : (
+                      <div className="h-16 w-28 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        No image
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImagePick("bannerUrl", e.target.files?.[0])}
+                    />
+                  </div>
+                  {uploading.bannerUrl && <p className="text-xs text-gray-500">Uploading banner...</p>}
+                  {errors.bannerUrl && <p className="text-sm text-red-600">{errors.bannerUrl}</p>}
+                </div>
+
+                {/* T-shirt image */}
+                <div className="space-y-2">
+                  <Label>T-shirt Image</Label>
+                  <div className="flex items-center gap-4">
+                    {previews.tshirtUrl || formData.tshirtUrl ? (
+                      <img
+                        src={previews.tshirtUrl || formData.tshirtUrl}
+                        alt="Brand t-shirt preview"
+                        className="h-16 w-16 rounded border object-cover"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        No image
+                      </div>
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImagePick("tshirtUrl", e.target.files?.[0])}
+                    />
+                  </div>
+                  {uploading.tshirtUrl && <p className="text-xs text-gray-500">Uploading t-shirt...</p>}
+                  {errors.tshirtUrl && <p className="text-sm text-red-600">{errors.tshirtUrl}</p>}
                 </div>
               </div>
             </CardContent>

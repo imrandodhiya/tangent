@@ -485,6 +485,17 @@ model TeamGameTotal {
   @@map("team_game_totals")
 }
 
+model operator_lane_assignments {
+  id            String   @id
+  operator_id   String
+  lane_id       String
+  tournament_id String
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([operator_id, lane_id, tournament_id], map: "operator_lane_assignments_unique")
+}
+
 enum UserStatus {
   ACTIVE
   DISABLED

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server"
 import { withPermission } from "@/lib/auth-middleware"
 import { PERMISSIONS } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
+import { emitToTournament } from "@/lib/websocket-server"
 
 // Get operator lane assignments
-export const GET = withPermission(PERMISSIONS.USERS_VIEW)(async (req, { params }) => {
+export const GET = withPermission(PERMISSIONS.USERS_VIEW)(async (req, context) => {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const operatorId = id
 
     const assignments = await prisma.operatorLaneAssignment.findMany({
@@ -33,14 +34,17 @@ export const GET = withPermission(PERMISSIONS.USERS_VIEW)(async (req, { params }
     return NextResponse.json(assignments)
   } catch (error) {
     console.error("Error fetching operator lane assignments:", error)
-    return NextResponse.json({ error: "Failed to fetch lane assignments" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch lane assignments" },
+      { status: 500 },
+    )
   }
 })
 
 // Assign operator to lanes
-export const POST = withPermission(PERMISSIONS.USERS_EDIT)(async (req, { params }) => {
+export const POST = withPermission(PERMISSIONS.USERS_EDIT)(async (req, context) => {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const operatorId = id
     const body = await req.json()
     const { tournamentId, laneIds } = body
@@ -51,7 +55,10 @@ export const POST = withPermission(PERMISSIONS.USERS_EDIT)(async (req, { params 
       include: { role: true },
     })
 
-    if (!operator || !["OPERATOR", "SCORER", "TOURNAMENT_OPERATOR"].includes(operator.role.name)) {
+    if (
+      !operator ||
+      !["OPERATOR", "SCORER", "TOURNAMENT_OPERATOR"].includes(operator.role.name)
+    ) {
       return NextResponse.json({ error: "Invalid operator" }, { status: 400 })
     }
 
@@ -80,6 +87,16 @@ export const POST = withPermission(PERMISSIONS.USERS_EDIT)(async (req, { params 
       ),
     )
 
+    try {
+      emitToTournament(tournamentId, "lanes-updated", {
+        tournamentId,
+        operatorId,
+        laneIds,
+      })
+    } catch {
+      // swallow errors
+    }
+
     return NextResponse.json(assignments)
   } catch (error) {
     console.error("Error assigning operator to lanes:", error)
@@ -88,16 +105,19 @@ export const POST = withPermission(PERMISSIONS.USERS_EDIT)(async (req, { params 
 })
 
 // Remove lane assignment
-export const DELETE = withPermission(PERMISSIONS.USERS_EDIT)(async (req, { params }) => {
+export const DELETE = withPermission(PERMISSIONS.USERS_EDIT)(async (req, context) => {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const operatorId = id
     const { searchParams } = new URL(req.url)
     const laneId = searchParams.get("laneId")
     const tournamentId = searchParams.get("tournamentId")
 
     if (!laneId || !tournamentId) {
-      return NextResponse.json({ error: "Lane ID and Tournament ID are required" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Lane ID and Tournament ID are required" },
+        { status: 400 },
+      )
     }
 
     await prisma.operatorLaneAssignment.deleteMany({
@@ -108,9 +128,22 @@ export const DELETE = withPermission(PERMISSIONS.USERS_EDIT)(async (req, { param
       },
     })
 
+    try {
+      emitToTournament(tournamentId, "lanes-updated", {
+        tournamentId,
+        operatorId,
+        removedLaneId: laneId,
+      })
+    } catch {
+      // swallow errors
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error removing lane assignment:", error)
-    return NextResponse.json({ error: "Failed to remove lane assignment" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to remove lane assignment" },
+      { status: 500 },
+    )
   }
 })

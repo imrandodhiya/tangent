@@ -104,6 +104,66 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 }
 
+export async function PUT(request: NextRequest, { params }: { params: { id: string; slotId: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { teamId, laneId, positionNo, seed } = body
+
+    if (!teamId) {
+      return NextResponse.json({ error: "Team ID is required" }, { status: 400 })
+    }
+
+    const { id, slotId } = await params
+
+    // Find existing slot team assignment
+    const existingSlotTeam = await prisma.slotTeam.findFirst({
+      where: {
+        tournamentSlotId: slotId,
+        teamId: teamId,
+      },
+    })
+
+    if (!existingSlotTeam) {
+      return NextResponse.json({ error: "Team assignment not found in this slot" }, { status: 404 })
+    }
+
+    // Update the slot team with new lane assignment
+    const updatedSlotTeam = await prisma.slotTeam.update({
+      where: { id: existingSlotTeam.id },
+      data: {
+        laneId: laneId || null,
+        positionNo: positionNo || existingSlotTeam.positionNo,
+        seed: seed || existingSlotTeam.seed,
+        updatedBy: session.user.id,
+        updatedAt: new Date(),
+      },
+      include: {
+        team: {
+          include: {
+            brand: true,
+            teamMembers: {
+              include: {
+                member: true,
+              },
+            },
+          },
+        },
+        lane: true,
+      },
+    })
+
+    return NextResponse.json(updatedSlotTeam)
+  } catch (error) {
+    console.error("Error updating team lane assignment:", error)
+    return NextResponse.json({ error: "Failed to update team lane assignment" }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: { id: string; slotId: string } }) {
   try {
     const session = await getServerSession(authOptions)

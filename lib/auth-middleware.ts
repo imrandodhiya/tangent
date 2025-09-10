@@ -12,8 +12,10 @@ export interface AuthenticatedRequest extends NextRequest {
   }
 }
 
-export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextResponse>) {
-  return async (req: NextRequest) => {
+type RouteHandler = (req: AuthenticatedRequest, context: { params: any }) => Promise<NextResponse>
+
+export function withAuth(handler: RouteHandler) {
+  return async (req: NextRequest, context: { params: any }) => {
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -28,43 +30,43 @@ export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextRes
       permissions: session.user.permissions,
     }
 
-    return handler(authenticatedReq)
+    return handler(authenticatedReq, context)
   }
 }
 
 export function withPermission(permission: Permission) {
-  return (handler: (req: AuthenticatedRequest) => Promise<NextResponse>) =>
-    withAuth(async (req: AuthenticatedRequest) => {
+  return (handler: RouteHandler) =>
+    withAuth(async (req: AuthenticatedRequest, context: { params: any }) => {
       const checker = new PermissionChecker(req.user.permissions)
 
       if (!checker.hasPermission(permission)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
 
-      return handler(req)
+      return handler(req, context)
     })
 }
 
 export function withAnyPermission(permissions: Permission[]) {
-  return (handler: (req: AuthenticatedRequest) => Promise<NextResponse>) =>
-    withAuth(async (req: AuthenticatedRequest) => {
+  return (handler: RouteHandler) =>
+    withAuth(async (req: AuthenticatedRequest, context: { params: any }) => {
       const checker = new PermissionChecker(req.user.permissions)
 
       if (!checker.hasAnyPermission(permissions)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
 
-      return handler(req)
+      return handler(req, context)
     })
 }
 
 export function withRole(allowedRoles: string[]) {
-  return (handler: (req: AuthenticatedRequest) => Promise<NextResponse>) =>
-    withAuth(async (req: AuthenticatedRequest) => {
+  return (handler: RouteHandler) =>
+    withAuth(async (req: AuthenticatedRequest, context: { params: any }) => {
       if (!allowedRoles.includes(req.user.role)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
 
-      return handler(req)
+      return handler(req, context)
     })
 }

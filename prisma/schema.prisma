@@ -124,6 +124,7 @@ model User {
   state    State?        @relation(fields: [stateId], references: [id])
   city     City?         @relation(fields: [cityId], references: [id])
   sessions UserSession[]
+  operatorLaneAssignments OperatorLaneAssignment[]
 
   @@map("users")
 }
@@ -282,6 +283,7 @@ model Tournament {
   teams            Team[]
   playerGames      PlayerGame[]
   tournamentSlots  TournamentSlot[]
+  operatorLaneAssignments OperatorLaneAssignment[]
 
   @@map("tournaments")
 }
@@ -343,6 +345,7 @@ model TournamentMatch {
 
   // Relations
   tournamentRound TournamentRound @relation(fields: [tournamentRoundId], references: [id])
+  
   playerGames     PlayerGame[]
   teamGameTotals  TeamGameTotal[]
 
@@ -365,6 +368,7 @@ model Lane {
   // Relations
   slotTeams   SlotTeam[]
   playerGames PlayerGame[]
+  operatorLaneAssignments OperatorLaneAssignment[]
 
   @@map("lanes")
 }
@@ -394,7 +398,7 @@ model TournamentSlot {
   tournamentRound TournamentRound @relation(fields: [tournamentRoundId], references: [id]) // Added relation to tournament round
   slotTeams       SlotTeam[]
 
-  @@unique([tournamentId, slotNo])
+  @@unique([tournamentId, tournamentRoundId, slotNo])
   @@map("tournament_slots")
 }
 
@@ -579,4 +583,21 @@ model TeamGameTotal {
 
   @@unique([tournamentMatchId, teamId, gameNo])
   @@map("team_game_totals")
+}
+
+model OperatorLaneAssignment {
+  id           String    @id @default(cuid())
+  operatorId   String    @map("operator_id")
+  laneId       String    @map("lane_id")
+  tournamentId String    @map("tournament_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  operator   User       @relation(fields: [operatorId], references: [id])
+  lane       Lane       @relation(fields: [laneId], references: [id])
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@unique([operatorId, laneId, tournamentId])
+  @@map("operator_lane_assignments")
 }

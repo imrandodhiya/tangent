@@ -6,25 +6,56 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = await params
     const matches = await prisma.tournamentMatch.findMany({
       where: {
-        tournament: {
-          id,
+        tournamentRound: {
+          tournamentId: id,
         },
       },
       include: {
-        round: true,
-        slotTeams: {
+        tournamentRound: {
           include: {
-            team: {
+            tournamentSlots: {
               include: {
-                brand: true,
+                slotTeams: {
+                  include: {
+                    team: {
+                      include: {
+                        brand: true,
+                      },
+                    },
+                    lane: true,
+                  },
+                },
               },
             },
-            lane: true,
           },
         },
       },
-      orderBy: [{ round: { roundNo: "asc" } }, { name: "asc" }],
+      orderBy: [
+        { tournamentRound: { roundNo: "asc" } },
+        { name: "asc" },
+      ],
     })
+    // const matches = await prisma.tournamentMatch.findMany({
+    //   where: {
+    //     tournament: {
+    //       id,
+    //     },
+    //   },
+    //   include: {
+    //     round: true,
+    //     slotTeams: {
+    //       include: {
+    //         team: {
+    //           include: {
+    //             brand: true,
+    //           },
+    //         },
+    //         lane: true,
+    //       },
+    //     },
+    //   },
+    //   orderBy: [{ round: { roundNo: "asc" } }, { name: "asc" }],
+    // })
 
     return NextResponse.json(matches)
   } catch (error) {

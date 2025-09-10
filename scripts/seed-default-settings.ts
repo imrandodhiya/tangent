@@ -155,6 +155,16 @@ async function seedDefaultSettings() {
       description: "Application favicon URL",
       type: "string",
     },
+
+    // Display Settings
+    {
+      key: "display.page_order",
+      value: "[]",
+      category: "display",
+      description:
+        "Ordered list of route paths to show on display; first is highest priority (e.g., '/(public)/leaderboard/ABC123')",
+      type: "json",
+    },
   ]
 
   for (const settingData of defaultSettings) {

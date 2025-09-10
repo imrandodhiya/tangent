@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { PERMISSIONS } from "@/lib/permissions"
-import { Plus, UserCog, Edit, Trash2, Mail, Phone } from "lucide-react"
+import { Plus, UserCog, Edit, Trash2, Mail, Phone, Target } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
@@ -185,6 +185,11 @@ export default function OperatorsPage() {
                   {operator.firstName} {operator.lastName}
                 </CardTitle>
                 <div className="flex gap-2">
+                  <Link href={`/operators/${operator.id}/lanes`}>
+                    <Button variant="ghost" size="sm" title="Manage Lanes">
+                      <Target className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href={`/operators/${operator.id}/edit`}>
                     <Button variant="ghost" size="sm">
                       <Edit className="h-4 w-4" />

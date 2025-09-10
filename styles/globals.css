@@ -6,6 +6,11 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* helper to avoid nested scrolling inside forms/dialogs; apply on wrappers if needed */
+  .no-inner-scroll {
+    overflow: visible !important;
+    overscroll-behavior: contain;
+  }
 }
 
 @layer base {

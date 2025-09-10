@@ -9,13 +9,28 @@ export async function GET(request: NextRequest) {
       searchParams.get("pageSize") || searchParams.get("per_page") || searchParams.get("perPage") || "10",
     )
     const search = (searchParams.get("search") || searchParams.get("q") || "").trim()
+    const laneNo = searchParams.get("laneNo")
+
+    if (laneNo && !isNaN(Number(laneNo))) {
+      const lane = await prisma.lane.findFirst({
+        where: {
+          laneNo: Number(laneNo),
+          deletedAt: null,
+        },
+      })
+
+      if (lane) {
+        return NextResponse.json([lane]) // Return as array for compatibility
+      } else {
+        return NextResponse.json([]) // Return empty array if not found
+      }
+    }
 
     const where = {
       deletedAt: null,
       ...(search && {
         OR: [
           { venueName: { contains: search, mode: "insensitive" as const } },
-          // allow numeric search for laneNo
           { laneNo: !Number.isNaN(Number(search)) ? Number(search) : undefined } as any,
         ].filter(Boolean),
       }),
@@ -51,7 +66,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { laneNo, venueName, isActive, notes } = body
 
-    // Check if lane number already exists
     const existingLane = await prisma.lane.findFirst({
       where: {
         laneNo,

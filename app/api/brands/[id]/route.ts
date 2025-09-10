@@ -1,17 +1,16 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = await params
+    const { id } = params
     const brand = await prisma.brand.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -72,28 +71,40 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           orderBy: [{ tournament: { startDate: "desc" } }],
         },
       },
-
     })
     if (!brand) return NextResponse.json({ error: "Brand not found" }, { status: 404 })
     return NextResponse.json(brand)
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to fetch brand" }, { status: 500 })
   }
-
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { id } = await params
-    const body = await req.json().catch(() => ({} as any))
+    const { id } = params
+    const body = await req.json().catch(() => ({}) as any)
 
-    const { name, code, isActive, description, logoUrl, primaryColor, secondaryColor, contactName, contactEmail, contactPhone, website, stateId, cityId } =
-      body ?? {}
+    const {
+      name,
+      code,
+      isActive,
+      description,
+      logoUrl,
+      primaryColor,
+      secondaryColor,
+      contactName,
+      contactEmail,
+      contactPhone,
+      website,
+      stateId,
+      cityId,
+      bannerUrl,
+      tshirtUrl,
+    } = body ?? {}
 
-    // Validate if fields are present
     if (name !== undefined && !String(name).trim()) {
       return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 })
     }
@@ -101,19 +112,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Code cannot be empty" }, { status: 400 })
     }
 
-    // Ensure brand exists
     const existing = await prisma.brand.findUnique({ where: { id } })
     if (!existing || existing.deletedAt) {
       return NextResponse.json({ error: "Brand not found" }, { status: 404 })
     }
 
-    // Unique code check (case-insensitive) when code is changing
     if (code !== undefined) {
       const found = await prisma.brand.findFirst({
         where: {
           id: { not: id },
           deletedAt: null,
-          // case-insensitive uniqueness; adjust if you have unique index
           code: { equals: String(code).trim(), mode: "insensitive" as const },
         },
         select: { id: true },
@@ -129,6 +137,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}),
         ...(description !== undefined ? { description: description ?? null } : {}),
         ...(logoUrl !== undefined ? { logoUrl: logoUrl ?? null } : {}),
+        ...(bannerUrl !== undefined ? { bannerUrl: bannerUrl ?? null } : {}),
+        ...(tshirtUrl !== undefined ? { tshirtUrl: tshirtUrl ?? null } : {}),
         ...(primaryColor !== undefined ? { primaryColor: primaryColor ?? null } : {}),
         ...(secondaryColor !== undefined ? { secondaryColor: secondaryColor ?? null } : {}),
         ...(contactName !== undefined ? { contactName: contactName ?? null } : {}),
@@ -137,13 +147,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         ...(website !== undefined ? { website: website ?? null } : {}),
         ...(stateId !== undefined ? { stateId: stateId ?? null } : {}),
         ...(cityId !== undefined ? { cityId: cityId ?? null } : {}),
-        updatedBy: session.user.id, // if your schema has this
+        updatedBy: session.user.id,
       },
       select: {
         id: true,
         name: true,
         description: true,
         logoUrl: true,
+        bannerUrl: true,
+        tshirtUrl: true,
         primaryColor: true,
         secondaryColor: true,
         contactName: true,
@@ -155,7 +167,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         website: true,
         state: { select: { id: true, name: true } },
         city: { select: { id: true, name: true } },
-        // keep these for UI parity after updating
         members: {
           where: { deletedAt: null },
           select: {
@@ -197,16 +208,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = await params
-    // Soft delete the team
-    await prisma.team.update({
+    const { id } = params
+    await prisma.brand.update({
       where: { id },
       data: {
         deletedAt: new Date(),

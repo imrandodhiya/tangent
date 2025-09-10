@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
         stateId: data.stateId,
         cityId: data.cityId,
         logoUrl: data.logoUrl,
+        bannerUrl: data.bannerUrl || null,
+        tshirtUrl: data.tshirtUrl || null,
         primaryColor: data.primaryColor,
         secondaryColor: data.secondaryColor,
         contactName: data.contactName,

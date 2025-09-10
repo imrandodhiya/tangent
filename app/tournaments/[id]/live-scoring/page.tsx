@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import { io, type Socket } from "socket.io-client"
 import { Card } from "@/components/ui/card"
@@ -77,9 +77,16 @@ export default function LiveScoringPage() {
   const [tournamentName, setTournamentName] = useState("")
   const [isLoading, setIsLoading] = useState(true)
 
+  const socketUrl = useMemo(() => {
+    if (typeof window !== "undefined") {
+      return process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin
+    }
+    return process.env.NEXT_PUBLIC_SOCKET_URL || ""
+  }, [])
+
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "", {
+    const newSocket = io(socketUrl, {
       path: "/api/socket",
     })
 
@@ -101,7 +108,7 @@ export default function LiveScoringPage() {
     return () => {
       newSocket.disconnect()
     }
-  }, [tournamentId])
+  }, [tournamentId, socketUrl])
 
   const fetchLiveScores = async () => {
     try {
